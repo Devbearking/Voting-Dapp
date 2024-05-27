@@ -1,5 +1,3 @@
-# Voting DApp
-
 # IMPORTANT!
 This Voting Dapp is a decentralized application designed to facilitate secure and transparent voting processes. Created for a specific job application, it is intended solely for demonstration purposes and is not for sale or commercial use. The Dapp showcases the candidate's skills in blockchain technology, smart contract development, and user interface design.
 
@@ -7,7 +5,7 @@ Disclaimer:
 
 This Voting Dapp is a non-commercial, educational project created specifically for a job application. It is not intended for public deployment, commercial use, or any real-world voting scenarios. The code and application are provided "as-is" without any warranties or guarantees of functionality or security.
 
-
+# Voting DApp
 
 ## Overview
 
