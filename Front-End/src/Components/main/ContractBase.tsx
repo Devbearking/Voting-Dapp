@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
-import { SpinnerRoundFilled } from "spinners-react";
-import limeLogo from "../assets/limeLogo.png";
+import classes from "./ContractBase.module.scss";
+import Spinner from "../spinner/Spinner";
 
 const VotingAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
@@ -164,6 +164,9 @@ const Voting = () => {
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
+  const [showMore, setShowMore] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isBtnDisabled, setbtn] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -201,20 +204,21 @@ const Voting = () => {
 
   const addPerson = async () => {
     if (contract && newPerson) {
+      setIsLoading(!isLoading);
       const tx = await contract.addPerson(newPerson);
       await tx.wait();
       setNewPerson("");
       const updatedOptions = [...options, { name: newPerson, voteCount: 0 }];
       setOptions(updatedOptions);
+      setIsLoading(isLoading);
+      if (showMore === false) setShowMore(!showMore);
     }
-    return (
-      <div>
-        <SpinnerRoundFilled className="spinner" enabled={true} />
-      </div>
-    );
   };
 
+  
   const voteForOption = async () => {
+    setbtn(!isBtnDisabled)
+    setIsLoading(!isLoading);
     if (contract && selectedOption !== null) {
       const tx = await contract.voteForOption(selectedOption);
       await tx.wait();
@@ -223,49 +227,91 @@ const Voting = () => {
           ? { ...option, voteCount: option.voteCount + 1 }
           : option
       );
+      setbtn(isBtnDisabled)
       setOptions(updatedOptions);
+      setIsLoading(isLoading);
     }
   };
 
   return (
-    <div className="Voting">
-      <img className="logo" src={limeLogo} alt=""></img>
-      <div className="Content">
-        <h1>Voting DApp</h1>
-        {account && <p>Connected as: {account}</p>}
-        <h2>Add Person</h2>
-        <input
-          className="input"
-          placeholder="Full Name"
-          type="text"
-          value={newPerson}
-          onChange={(e) => setNewPerson(e.target.value)}
-        />
-        <button className="button-30" onClick={addPerson}>
-          Add Person
-        </button>
-        {/* <SpinnerRoundFilled className="spinner" enabled={true} /> */}
-        <h2>Vote for a Person</h2>
-        {options.map((option, index) => (
-          <div key={index}>
-            <input
-              type="radio"
-              value={index}
-              checked={selectedOption === index}
-              onChange={() => setSelectedOption(index)}
-            />
-            {option.name} - {option.voteCount} votes
-          </div>
-        ))}
-        <button className="button-30" onClick={voteForOption}>
-          Vote
-        </button>
-        <h2>Vote Results</h2>
-        {options.map((option, index) => (
-          <div className="expanding-div" key={index}>
-            {option.name}: {option.voteCount}
-          </div>
-        ))}
+    <div>
+      <div className={classes["Voting"]}>
+        <div className={classes["Content"]}>
+          <h1>Voting DApp</h1>
+          {account && (
+            <p className={classes["info"]} id="account">
+              Connected as: {account}
+            </p>
+          )}
+          <h2>Add Person</h2>
+          <input
+            className={classes["input"]}
+            placeholder="Full Name"
+            type="text"
+            value={newPerson}
+            onChange={(e) => setNewPerson(e.target.value)}
+          />
+          {isLoading && isBtnDisabled === false ? (
+            <Spinner />
+          ) : (
+            <button className={classes["button-30"]} onClick={addPerson} disabled={isBtnDisabled}>
+              Add Person
+            </button>
+          )}
+          {showMore && (
+            <div>
+              <h2>Vote for a Person</h2>
+              {options.map((option, index) => (
+                <div key={index}>
+                  <input
+                    type="checkbox"
+                    value={index}
+                    checked={selectedOption === index}
+                    onChange={() => setSelectedOption(index)}
+                  />
+                  <label className={classes["candidates"]} id="person">
+                    {option.name}
+                  </label>
+                </div>
+              ))}
+              {isLoading ? (
+                <Spinner />
+              ) : (
+                <button
+                  className={classes["button-30"]}
+                  onClick={voteForOption}
+                >
+                  Vote
+                </button>
+              )}
+              <h2>Vote Results</h2>
+              {options.map((option, index) => (
+                <label className={classes["candidates"]} id="result" key={index}>
+                  {option.name}: {option.voteCount}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className={classes["message"]}>
+        <h1 className={classes["messageHeading"]}>Important Message !!!</h1>
+        <p>
+          This Voting Dapp is a decentralized application designed to facilitate
+          secure and transparent voting processes. Created for a specific job
+          application, it is intended solely for demonstration purposes and is
+          not for sale or commercial use. The Dapp showcases the candidate's
+          skills in blockchain technology, smart contract development, and user
+          interface design.
+        </p>
+        <h3>Disclaimer:</h3>
+        <p>
+          This Voting Dapp is a non-commercial, educational project created
+          specifically for a job application. It is not intended for public
+          deployment, commercial use, or any real-world voting scenarios. The
+          code and application are provided "as-is" without any warranties or
+          guarantees of functionality or security.
+        </p>
       </div>
     </div>
   );

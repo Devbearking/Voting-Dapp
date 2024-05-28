@@ -1,8 +1,8 @@
 
-import ContractBase from './Components/ContractBase'
+import ContractBase from './Components/main/ContractBase'
 
 import './App.css';
-import './Styles/ContractBase.scss'
+
 
 function App() {
   return (
