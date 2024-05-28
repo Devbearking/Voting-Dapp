@@ -3,7 +3,7 @@ This Voting Dapp is a decentralized application designed to facilitate secure an
 
 Disclaimer:
 
-This Voting Dapp is a non-commercial, educational project created specifically for a job application. It is not intended for public deployment, commercial use, or any real-world voting scenarios. The code and application are provided "as-is" without any warranties or guarantees of functionality or security.
+This Voting Dapp is a non-commercial, educational project created specifically for a job application at LimeChain. It is not intended for public deployment, commercial use, or any real-world voting scenarios. The code and application are provided "as-is" without any warranties or guarantees of functionality or security.
 
 # Voting DApp
 
