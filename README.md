@@ -44,21 +44,20 @@ To run this project locally, you need to have the following installed:
 
 ```bash
 git clone https://github.com/yourusername/voting-dapp.git
-cd voting-dapp
 ```
 
 ### Install Dependencies
 
-Navigate to both the front end and back end directories and install the necessary dependencies.
+Navigate to both the Front-End and Back-End directories and install the necessary dependencies.
 
-For the front end:
+For the Front End:
 
 ```bash
 cd Front-End
 npm install
 ```
 
-For the back end:
+For the Back End:
 
 ```bash
 cd Back-End
@@ -66,13 +65,6 @@ npm install
 ```
 
 ### Configure Environment Variables
-
-Create a `.env` file in the `Back-End` directory and add your environment variables. Here is an example:
-
-```env
-PRIVATE_KEY=your_private_key
-INFURA_PROJECT_ID=your_infura_project_id
-```
 
 ### Compile Smart Contracts
 
@@ -120,22 +112,9 @@ voting-dapp/
 
 ## Usage
 
-1. **Create a Voting Session**: Navigate to the create session page and fill out the required details.
-2. **Participate in a Voting Session**: Find a voting session you want to participate in and cast your vote.
-3. **View Results**: Once the voting session is over, view the results on the results page.
+1. **Add candidates**: Navigate to the input and fill out the required details.
+2. **Participate in a Voting**: Find the candidate you want and cast your vote.
+3. **View Results**: The results will be displayed immediately.
 
-## Contributing
-
-Contributions are welcome! Please fork the repository and submit a pull request with your changes. Ensure that your code adheres to the project's coding standards and includes tests where applicable.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-For questions or support, please open an issue in this repository or contact the repository owner.
-
----
 
 Happy coding!
