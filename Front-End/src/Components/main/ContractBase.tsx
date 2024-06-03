@@ -1,18 +1,18 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import classes from "./ContractBase.module.scss";
 import Spinner from "../spinner/Spinner";
 import ContractABI from '../../App/ContractABI.json'
 import { useAccount, useDisconnect } from 'wagmi'
  
-const VotingAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const VotingAddress = "0xfFcEe5d0532D64e69D585F5b3bbCCa8ecBA74562";
 
 interface Option {
   name: string;
   voteCount: number;
 }
 
-const VotingABI = ContractABI
+const VotingABI = ContractABI;
 
 const Voting = () => {
   const [options, setOptions] = useState<Option[]>([]);
@@ -27,7 +27,19 @@ const Voting = () => {
   const [error, setError] = useState<string | null>(null);
 
   const { address, isConnected } = useAccount()
-  
+  const { disconnect } = useDisconnect();
+
+  // You don't need this logic. Refactor.
+  useEffect(() => {
+
+    const getVoters = async () => {
+      const owner = await (contract as any).GetVoteResults();
+      console.log('owner', owner)
+    }
+
+    if(!!contract) getVoters();
+
+  }, [contract])
   
    const ConnectToWallet = async () => {
    
@@ -114,6 +126,7 @@ const Voting = () => {
           {address && isConnected ? (
             <p className={classes["info"]} id="account">
               Connected as: {address}
+              <button onClick={() => disconnect()}>Disconnect</button>
             </p>
           ) : (
             <button className={classes["button-30"]} onClick={ConnectToWallet}>
