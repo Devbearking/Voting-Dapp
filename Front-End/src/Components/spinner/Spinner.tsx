@@ -9,7 +9,7 @@ type Props = {
 }
 
 const override: CSSProperties = {
-    borderColor: "transparent #28ec9b transparent",
+    borderColor: "transparent #ffff transparent",
     borderWidth: "12px",
 
   };

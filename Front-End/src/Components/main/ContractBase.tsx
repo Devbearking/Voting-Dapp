@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import classes from "./ContractBase.module.scss";
 import Spinner from "../spinner/Spinner";
+import ContractABI from '../../App/ContractABI.json'
+import { useAccount } from 'wagmi'
+import { config } from '../config'
 
 const VotingAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
@@ -10,151 +13,7 @@ interface Option {
   voteCount: number;
 }
 
-const VotingABI = [
-  {
-    inputs: [],
-    stateMutability: "nonpayable",
-    type: "constructor",
-  },
-  {
-    inputs: [],
-    name: "GetVoteResults",
-    outputs: [
-      {
-        internalType: "string[]",
-        name: "",
-        type: "string[]",
-      },
-      {
-        internalType: "uint256[]",
-        name: "",
-        type: "uint256[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "string",
-        name: "personName",
-        type: "string",
-      },
-    ],
-    name: "addPerson",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256[]",
-        name: "numbers",
-        type: "uint256[]",
-      },
-    ],
-    name: "hashNumbers",
-    outputs: [
-      {
-        internalType: "bytes32",
-        name: "",
-        type: "bytes32",
-      },
-    ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    name: "options",
-    outputs: [
-      {
-        internalType: "string",
-        name: "name",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "voteCount",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "owner",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "optionIndex",
-        type: "uint256",
-      },
-    ],
-    name: "removePerson",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "optionIndex",
-        type: "uint256",
-      },
-    ],
-    name: "voteForOption",
-    outputs: [
-      {
-        internalType: "string",
-        name: "votedFor",
-        type: "string",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
-    name: "voters",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-];
+const VotingABI = ContractABI
 
 const Voting = () => {
   const [options, setOptions] = useState<Option[]>([]);
@@ -167,69 +26,88 @@ const Voting = () => {
   const [showMore, setShowMore] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isBtnDisabled, setbtn] = useState(false);
+  const [isConnected, setConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const init = async () => {
-      if (window.ethereum) {
-        const web3Provider = new ethers.BrowserProvider(window.ethereum);
-        setProvider(web3Provider);
+  const WagmiAccount = useAccount({config})
 
-        const accounts = await web3Provider.send("eth_requestAccounts", []);
-        setAccount(accounts[0]);
+  const ConnectToWallet = async () => {
+    console.log(WagmiAccount)
+    setConnected(!isConnected);
+  
+    if (window.ethereum) {
+      const web3Provider = new ethers.BrowserProvider(window.ethereum);
+      setProvider(web3Provider);
 
-        const signer = await web3Provider.getSigner();
-        setSigner(signer);
+      const accounts = await web3Provider.send("eth_requestAccounts", []);
+      setAccount(accounts[0]);
 
-        const votingContract = new ethers.Contract(
-          VotingAddress,
-          VotingABI,
-          signer
-        );
-        setContract(votingContract);
+      const signer = await web3Provider.getSigner();
+      setSigner(signer);
+      const votingContract = new ethers.Contract(
+        VotingAddress,
+        VotingABI,
+        signer
+      );
+      setContract(votingContract);
+    }
+  };
 
-        const optionsCount = votingContract.options.length;
-        const opts: Option[] = [];
-        for (let i = 0; i < optionsCount; i++) {
-          const option = await votingContract.options(i);
-          opts.push({
-            name: option.name,
-            voteCount: option.voteCount.toNumber(),
-          });
-        }
-        setOptions(opts);
-      }
-    };
-    init();
-  }, []);
+  // const disconnectWallet = () => {
+  //   setAccount(null);
+  //   setProvider(null);
+  //   setSigner(null);
+  //   setContract(null);
+  //   setOptions([]);
+  //   setShowMore(false);
+  // };
 
   const addPerson = async () => {
     if (contract && newPerson) {
       setIsLoading(!isLoading);
-      const tx = await contract.addPerson(newPerson);
-      await tx.wait();
-      setNewPerson("");
-      const updatedOptions = [...options, { name: newPerson, voteCount: 0 }];
-      setOptions(updatedOptions);
-      setIsLoading(isLoading);
-      if (showMore === false) setShowMore(!showMore);
+      try {
+        const tx = await contract.addPerson(newPerson);
+        await tx.wait();
+        setNewPerson("");
+        const updatedOptions = [...options, { name: newPerson, voteCount: 0 }];
+        setOptions(updatedOptions);
+        setIsLoading(isLoading);
+        if (!showMore) setShowMore(true);
+      } catch (error) {
+        if ((error as any).code === 4001) {
+          setError("Transaction rejected by user.");
+        } else {
+          setError("An error occurred during the transaction.");
+        }
+        setIsLoading(false);
+      }
     }
   };
 
-  
   const voteForOption = async () => {
-    setbtn(!isBtnDisabled)
+    setbtn(!isBtnDisabled);
     setIsLoading(!isLoading);
     if (contract && selectedOption !== null) {
-      const tx = await contract.voteForOption(selectedOption);
-      await tx.wait();
-      const updatedOptions = options.map((option, index) =>
-        index === selectedOption
-          ? { ...option, voteCount: option.voteCount + 1 }
-          : option
-      );
-      setbtn(isBtnDisabled)
-      setOptions(updatedOptions);
-      setIsLoading(isLoading);
+      try {
+        const tx = await contract.voteForOption(selectedOption);
+        await tx.wait();
+        const updatedOptions = options.map((option, index) =>
+          index === selectedOption
+            ? { ...option, voteCount: option.voteCount + 1 }
+            : option
+        );
+        setbtn(isBtnDisabled);
+        setOptions(updatedOptions);
+        setIsLoading(isLoading);
+      } catch (error) {
+        if ((error as any).code === 4001) {
+          setError("Transaction rejected by user.");
+        } else {
+          setError("An error occurred during the transaction.");
+        }
+        setIsLoading(false);
+        setbtn(isBtnDisabled);
+      }
     }
   };
 
@@ -238,10 +116,14 @@ const Voting = () => {
       <div className={classes["Voting"]}>
         <div className={classes["Content"]}>
           <h1>Voting DApp</h1>
-          {account && (
+          {account && isConnected ? (
             <p className={classes["info"]} id="account">
               Connected as: {account}
             </p>
+          ) : (
+            <button className={classes["button-30"]} onClick={ConnectToWallet}>
+              Connect to Wallet
+            </button>
           )}
           <h2>Add Person</h2>
           <input
@@ -254,7 +136,11 @@ const Voting = () => {
           {isLoading && isBtnDisabled === false ? (
             <Spinner />
           ) : (
-            <button className={classes["button-30"]} onClick={addPerson} disabled={isBtnDisabled}>
+            <button
+              className={classes["button-30"]}
+              onClick={addPerson}
+              disabled={isBtnDisabled || !isConnected}
+            >
               Add Person
             </button>
           )}
@@ -280,13 +166,18 @@ const Voting = () => {
                 <button
                   className={classes["button-30"]}
                   onClick={voteForOption}
+                  // disabled={}
                 >
                   Vote
                 </button>
               )}
               <h2>Vote Results</h2>
               {options.map((option, index) => (
-                <label className={classes["candidates"]} id="result" key={index}>
+                <label
+                  className={classes["candidates"]}
+                  id="result"
+                  key={index}
+                >
                   {option.name}: {option.voteCount}
                 </label>
               ))}

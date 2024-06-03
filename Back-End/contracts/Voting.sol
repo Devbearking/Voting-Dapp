@@ -6,7 +6,9 @@ pragma solidity >=0.6.12 <0.9.0;
    * @custom:dev-run-script ../scripts/Voting.ts
 */
 
+
 contract Voting {
+
     struct Option {
         string name;
         uint voteCount;
@@ -15,6 +17,7 @@ contract Voting {
     Option[] public options;
     mapping(address => bool) public voters;
 
+    
     // Only the owner can add and remove people to vote for
     address public owner;
 
@@ -29,12 +32,14 @@ contract Voting {
 
 
     // Allow the owner to add a new person to vote for
-    function addPerson(string memory personName) public onlyOwner {
+    function addPerson(string memory personName) public  {
         options.push(Option(personName, 0));
+        
+        
     }
 
     // Allow the owner to remove a person from voting options
-    function removePerson(uint optionIndex) public onlyOwner {
+    function removePerson(uint optionIndex) public {
         require(optionIndex < options.length, "Invalid option index");
         
         // Move the last option to the position of the removed option
@@ -48,8 +53,8 @@ contract Voting {
     // Allow users to vote for a person
     function voteForOption(uint optionIndex) public returns (string memory votedFor){
         
-        // require(optionIndex < options.length, "Invalid option index");
-        // require(!voters[msg.sender], "You have already voted");
+        require(optionIndex < options.length, "Invalid option index");
+        require(!voters[msg.sender], "You have already voted");
 
         options[optionIndex].voteCount += 1;
         voters[msg.sender] = true;
