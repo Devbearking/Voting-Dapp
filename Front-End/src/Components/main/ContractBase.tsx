@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { ethers } from "ethers";
 import classes from "./ContractBase.module.scss";
 import Spinner from "../spinner/Spinner";
 import ContractABI from '../../App/ContractABI.json'
-import { useAccount } from 'wagmi'
-import { config } from '../config'
-
+import { useAccount, useDisconnect } from 'wagmi'
+ 
 const VotingAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
 
 interface Option {
@@ -19,29 +18,25 @@ const Voting = () => {
   const [options, setOptions] = useState<Option[]>([]);
   const [newPerson, setNewPerson] = useState("");
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [account, setAccount] = useState<string | null>(null);
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
   const [showMore, setShowMore] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isBtnDisabled, setbtn] = useState(false);
-  const [isConnected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const WagmiAccount = useAccount({config})
-
-  const ConnectToWallet = async () => {
-    console.log(WagmiAccount)
-    setConnected(!isConnected);
+  const { address, isConnected } = useAccount()
   
+  
+   const ConnectToWallet = async () => {
+   
     if (window.ethereum) {
       const web3Provider = new ethers.BrowserProvider(window.ethereum);
       setProvider(web3Provider);
 
       const accounts = await web3Provider.send("eth_requestAccounts", []);
-      setAccount(accounts[0]);
-
+ 
       const signer = await web3Provider.getSigner();
       setSigner(signer);
       const votingContract = new ethers.Contract(
@@ -116,9 +111,9 @@ const Voting = () => {
       <div className={classes["Voting"]}>
         <div className={classes["Content"]}>
           <h1>Voting DApp</h1>
-          {account && isConnected ? (
+          {address && isConnected ? (
             <p className={classes["info"]} id="account">
-              Connected as: {account}
+              Connected as: {address}
             </p>
           ) : (
             <button className={classes["button-30"]} onClick={ConnectToWallet}>
