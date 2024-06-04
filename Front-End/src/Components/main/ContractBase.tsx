@@ -3,45 +3,52 @@ import { ethers } from "ethers";
 import classes from "./ContractBase.module.scss";
 import Spinner from "../spinner/Spinner";
 import ContractABI from '../../App/ContractABI.json'
-import { useAccount } from 'wagmi'
-import { config } from '../config'
-
-const VotingAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+import { useAccount, useDisconnect } from 'wagmi'
+ 
+const VotingAddress = "0xfFcEe5d0532D64e69D585F5b3bbCCa8ecBA74562";
 
 interface Option {
   name: string;
   voteCount: number;
 }
 
-const VotingABI = ContractABI
+const VotingABI = ContractABI;
 
 const Voting = () => {
   const [options, setOptions] = useState<Option[]>([]);
   const [newPerson, setNewPerson] = useState("");
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [account, setAccount] = useState<string | null>(null);
   const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
   const [showMore, setShowMore] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isBtnDisabled, setbtn] = useState(false);
-  const [isConnected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const WagmiAccount = useAccount({config})
+  const { address, isConnected } = useAccount()
+  const { disconnect } = useDisconnect();
 
-  const ConnectToWallet = async () => {
-    console.log(WagmiAccount)
-    setConnected(!isConnected);
+  // You don't need this logic. Refactor.
+  useEffect(() => {
+
+    const getVoters = async () => {
+      const owner = await (contract as any).GetVoteResults();
+      console.log('owner', owner)
+    }
+
+    if(!!contract) getVoters();
+
+  }, [contract])
   
+   const ConnectToWallet = async () => {
+   
     if (window.ethereum) {
       const web3Provider = new ethers.BrowserProvider(window.ethereum);
       setProvider(web3Provider);
 
       const accounts = await web3Provider.send("eth_requestAccounts", []);
-      setAccount(accounts[0]);
-
+ 
       const signer = await web3Provider.getSigner();
       setSigner(signer);
       const votingContract = new ethers.Contract(
@@ -116,9 +123,10 @@ const Voting = () => {
       <div className={classes["Voting"]}>
         <div className={classes["Content"]}>
           <h1>Voting DApp</h1>
-          {account && isConnected ? (
+          {address && isConnected ? (
             <p className={classes["info"]} id="account">
-              Connected as: {account}
+              Connected as: {address}
+              <button onClick={() => disconnect()}>Disconnect</button>
             </p>
           ) : (
             <button className={classes["button-30"]} onClick={ConnectToWallet}>
