@@ -64,23 +64,6 @@ cd Back-End
 npm install
 ```
 
-### Configure Environment Variables
-
-### Compile Smart Contracts
-
-```bash
-cd Back-End
-npx hardhat compile
-```
-
-### Deploy Smart Contracts
-
-Deploy the smart contracts to your desired network (e.g., local, Rinkeby, Mainnet).
-
-```bash
-npx hardhat run scripts/deploy.ts --network local
-```
-
 ### Run the Front End
 
 Navigate to the `Front-End` directory and start the development server.
