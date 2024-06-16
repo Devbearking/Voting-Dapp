@@ -167,7 +167,10 @@ const Voting = () => {
               </p>
               <button
                 className={classes["button-30"]}
-                onClick={() => disconnect()}
+                onClick={() => {
+                  disconnect();
+                  setShowMore(false);
+                }}
               >
                 Disconnect
               </button>
