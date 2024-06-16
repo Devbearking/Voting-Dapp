@@ -18,7 +18,7 @@ contract Voting {
     mapping(address => bool) public voters;
 
     
-    // Only the owner can add and remove people to vote for
+    // Only the owner can add and remove people
     address public owner;
 
     modifier onlyOwner() {
@@ -31,18 +31,15 @@ contract Voting {
     }
 
 
-    // Allow the owner to add a new person to vote for
-    function addPerson(string memory personName) public  {
+    // Allow the owner to add a new person
+    function addPerson(string memory personName) public onlyOwner {
         options.push(Option(personName, 0));
-        
-        
     }
 
     // Allow the owner to remove a person from voting options
-    function removePerson(uint optionIndex) public {
+    function removePerson(uint optionIndex) public onlyOwner{
         require(optionIndex < options.length, "Invalid option index");
         
-        // Move the last option to the position of the removed option
         options[optionIndex] = options[options.length - 1];
         options.pop();
     }

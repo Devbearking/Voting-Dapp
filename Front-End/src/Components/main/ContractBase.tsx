@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import classes from "./ContractBase.module.scss";
 import Spinner from "../spinner/Spinner";
-import ContractABI from '../../App/ContractABI.json'
-import { useAccount, useDisconnect } from 'wagmi'
- 
-const VotingAddress = "0xfFcEe5d0532D64e69D585F5b3bbCCa8ecBA74562";
+import ContractABI from "../../App/ContractABI.json";
+import { useAccount, useDisconnect, useSwitchChain } from "wagmi";
+
+const VotingAddress = "0xE690C0503BEc390231387ca9FC2c36404445b9fE";
 
 interface Option {
   name: string;
@@ -17,58 +17,94 @@ const VotingABI = ContractABI;
 const Voting = () => {
   const [options, setOptions] = useState<Option[]>([]);
   const [newPerson, setNewPerson] = useState("");
+  const [newRemove, setNewRemove] = useState("");
+  const [contractOwner, setOwner] = useState("");
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
-  const [signer, setSigner] = useState<ethers.Signer | null>(null);
-  const [contract, setContract] = useState<ethers.Contract | null>(null);
   const [showMore, setShowMore] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isBtnDisabled, setbtn] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
 
-  const { address, isConnected } = useAccount()
+  // Ethers
+  const [, setProvider] = useState<ethers.BrowserProvider | null>(null);
+  const [, setSigner] = useState<ethers.Signer | null>(null);
+  const [contract, setContract] = useState<ethers.Contract | null>(null);
+
+  // Wagmi
+  const { address, isConnected, chainId } = useAccount();
   const { disconnect } = useDisconnect();
+  const { chains, switchChain } = useSwitchChain();
 
-  // You don't need this logic. Refactor.
   useEffect(() => {
+    const getResults = async () => {
+      const owner = await (contract as any).owner();
 
-    const getVoters = async () => {
-      const owner = await (contract as any).GetVoteResults();
-      console.log('owner', owner)
+      const Results: any = await (contract as any).GetVoteResults();
+
+      const candidate = Results[0];
+
+      const voteCount = Results[1];
+
+      const candidateResults = [];
+      for (let i = 0; i < candidate.length; i++) {
+        candidateResults.push({
+          name: candidate[i],
+          voteCount: voteCount[i].toString(),
+        });
+        setOptions(candidateResults);
+      }
+
+      setOwner(owner);
+    };
+
+    if (isConnected) {
+      setShowMore(true);
     }
+    if (!contract) ConnectToWallet();
 
-    if(!!contract) getVoters();
+    if (!!contract) {
+      console.log(!!contract);
+      getResults();
+    }
+  }, [contract, isConnected]);
 
-  }, [contract])
-  
-   const ConnectToWallet = async () => {
-   
-    if (window.ethereum) {
-      const web3Provider = new ethers.BrowserProvider(window.ethereum);
-      setProvider(web3Provider);
-
-      const accounts = await web3Provider.send("eth_requestAccounts", []);
- 
-      const signer = await web3Provider.getSigner();
-      setSigner(signer);
-      const votingContract = new ethers.Contract(
-        VotingAddress,
-        VotingABI,
-        signer
-      );
-      setContract(votingContract);
+  const ConnectToCorrectChain = async () => {
+    try {
+      switchChain({ chainId: chains[0].id });
+    } catch (error) {
+      console.error("Error checking chain:", error);
     }
   };
 
-  // const disconnectWallet = () => {
-  //   setAccount(null);
-  //   setProvider(null);
-  //   setSigner(null);
-  //   setContract(null);
-  //   setOptions([]);
-  //   setShowMore(false);
-  // };
+  const ConnectToWallet = async () => {
+    if (window.ethereum) {
+      try {
+        const web3Provider = new ethers.BrowserProvider(window.ethereum);
+        setProvider(web3Provider);
 
+        const signer = await web3Provider.getSigner();
+        setSigner(signer);
+
+        const votingContract = new ethers.Contract(
+          VotingAddress,
+          VotingABI,
+          signer
+        );
+        setContract(votingContract);
+        setShowMore(true);
+      } catch (error) {
+        console.error("User rejectet wallet connect", error);
+      }
+    }
+  };
+
+  const removePerson = async () => {
+    if (contract && newRemove) {
+      const remove = await contract.removePerson(newRemove);
+      await remove.wait();
+      setNewRemove("");
+    }
+  };
   const addPerson = async () => {
     if (contract && newPerson) {
       setIsLoading(!isLoading);
@@ -76,10 +112,10 @@ const Voting = () => {
         const tx = await contract.addPerson(newPerson);
         await tx.wait();
         setNewPerson("");
+
         const updatedOptions = [...options, { name: newPerson, voteCount: 0 }];
         setOptions(updatedOptions);
         setIsLoading(isLoading);
-        if (!showMore) setShowMore(true);
       } catch (error) {
         if ((error as any).code === 4001) {
           setError("Transaction rejected by user.");
@@ -123,76 +159,132 @@ const Voting = () => {
       <div className={classes["Voting"]}>
         <div className={classes["Content"]}>
           <h1>Voting DApp</h1>
+          {/* Address and Connect, Disconnect Buttons */}
           {address && isConnected ? (
-            <p className={classes["info"]} id="account">
-              Connected as: {address}
-              <button onClick={() => disconnect()}>Disconnect</button>
-            </p>
+            <div>
+              <p className={classes["info"]} id="account">
+                Connected as: {address}
+              </p>
+              <button
+                className={classes["button-30"]}
+                onClick={() => disconnect()}
+              >
+                Disconnect
+              </button>
+              {chainId === chains[0].id ? (
+                <div></div>
+              ) : (
+                <div className={classes["ChainChecker"]}>
+                  <h1>Please switch to the correct chain</h1>
+                  {chains.map((chain) => (
+                    <button
+                      className={classes["messageBtn"]}
+                      key={chain.id}
+                      onClick={ConnectToCorrectChain}
+                    >
+                      Switch to {chain.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
             <button className={classes["button-30"]} onClick={ConnectToWallet}>
               Connect to Wallet
             </button>
           )}
-          <h2>Add Person</h2>
-          <input
-            className={classes["input"]}
-            placeholder="Full Name"
-            type="text"
-            value={newPerson}
-            onChange={(e) => setNewPerson(e.target.value)}
-          />
-          {isLoading && isBtnDisabled === false ? (
-            <Spinner />
-          ) : (
-            <button
-              className={classes["button-30"]}
-              onClick={addPerson}
-              disabled={isBtnDisabled || !isConnected}
-            >
-              Add Person
-            </button>
-          )}
-          {showMore && (
-            <div>
-              <h2>Vote for a Person</h2>
-              {options.map((option, index) => (
-                <div key={index}>
-                  <input
-                    type="checkbox"
-                    value={index}
-                    checked={selectedOption === index}
-                    onChange={() => setSelectedOption(index)}
-                  />
-                  <label className={classes["candidates"]} id="person">
-                    {option.name}
-                  </label>
-                </div>
-              ))}
-              {isLoading ? (
+          {/* Only Owenr: Add and Remove Candidates */}
+          {address === contractOwner ? (
+            <div className={classes["Owner-Container"]}>
+              <h2>Add Person</h2>
+              <input
+                className={classes["candidate-input"]}
+                placeholder="Full Name"
+                type="text"
+                value={newPerson}
+                onChange={(e) => setNewPerson(e.target.value)}
+              />
+              {isLoading && isBtnDisabled === false ? (
                 <Spinner />
               ) : (
                 <button
                   className={classes["button-30"]}
-                  onClick={voteForOption}
-                  // disabled={}
+                  onClick={addPerson}
+                  disabled={isBtnDisabled || !isConnected}
                 >
-                  Vote
+                  Add Person
                 </button>
               )}
-              <h2>Vote Results</h2>
-              {options.map((option, index) => (
-                <label
-                  className={classes["candidates"]}
-                  id="result"
-                  key={index}
-                >
-                  {option.name}: {option.voteCount}
-                </label>
-              ))}
+              <h2>Remove Person</h2>
+              <input
+                className={classes["candidate-input"]}
+                placeholder="Person's index"
+                type="text"
+                value={newRemove}
+                onChange={(e) => setNewRemove(e.target.value)}
+              />
+              <button className={classes["button-30"]} onClick={removePerson}>
+                Remove
+              </button>
+            </div>
+          ) : (
+            <div></div>
+          )}
+          {/* Candidates options and results */}
+          {showMore && (
+            <div className={classes["Results"]}>
+              <div className={classes["candidates-container"]}>
+                <div className={classes["vote-for-results"]}>
+                  <h2>Vote for a Person</h2>
+                  {options.map((option, index) => (
+                    <div key={index} className={classes["candidates-rows"]}>
+                      <input
+                        type="checkbox"
+                        value={index}
+                        checked={selectedOption === index}
+                        onChange={() => setSelectedOption(index)}
+                      />
+                      <label className={classes["candidates"]} id="person">
+                        <p>{option.name}</p>
+                      </label>
+                    </div>
+                  ))}
+                  <hr />
+                  {isLoading ? (
+                    <Spinner />
+                  ) : (
+                    <button
+                      className={classes["button-30"]}
+                      onClick={voteForOption}
+                    >
+                      Vote
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className={classes["candidates-container"]}>
+                <div className={classes["vote-for-results"]}>
+                  <h2>Vote Results</h2>
+                  {options.map((option, index) => (
+                    <div className={classes["candidates-rows"]} key={index}>
+                      <label
+                        className={classes["candidates"]}
+                        id="result"
+                        key={index}
+                      >
+                        <p>
+                          Candidate: {option.name} Votes: {option.voteCount}
+                        </p>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>
       </div>
+      {/* Message for non Copywrite */}
       <div className={classes["message"]}>
         <h1 className={classes["messageHeading"]}>Important Message !!!</h1>
         <p>
