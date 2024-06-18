@@ -4,6 +4,7 @@ import classes from "./ContractBase.module.scss";
 import Spinner from "../spinner/Spinner";
 import ContractABI from "../../App/ContractABI.json";
 import { useAccount, useDisconnect, useSwitchChain } from "wagmi";
+import { time } from "console";
 
 const VotingAddress = "0xE690C0503BEc390231387ca9FC2c36404445b9fE";
 
@@ -23,7 +24,7 @@ const Voting = () => {
   const [showMore, setShowMore] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isBtnDisabled, setbtn] = useState(false);
-  const [, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Ethers
   const [, setProvider] = useState<ethers.BrowserProvider | null>(null);
@@ -36,43 +37,43 @@ const Voting = () => {
   const { chains, switchChain } = useSwitchChain();
 
   useEffect(() => {
-    const getResults = async () => {
-      const owner = await (contract as any).owner();
-
-      const Results: any = await (contract as any).GetVoteResults();
-
-      const candidate = Results[0];
-
-      const voteCount = Results[1];
-
-      const candidateResults = [];
-      for (let i = 0; i < candidate.length; i++) {
-        candidateResults.push({
-          name: candidate[i],
-          voteCount: voteCount[i].toString(),
-        });
-        setOptions(candidateResults);
-      }
-
-      setOwner(owner);
-    };
 
     if (isConnected) {
       setShowMore(true);
     }
     if (!contract) ConnectToWallet();
-
     if (!!contract) {
-      console.log(!!contract);
       getResults();
     }
+
   }, [contract, isConnected]);
 
+  const getResults = async () => {
+    const owner = await (contract as any).owner();
+    const Results: any = await (contract as any).GetVoteResults();
+
+    const candidate = Results[0];
+    const voteCount = Results[1];
+
+    const candidateResults = [];
+    for (let i = 0; i < candidate.length; i++) {
+      candidateResults.push({
+        name: candidate[i],
+        voteCount: voteCount[i].toString(),
+      });
+      setOptions(candidateResults);
+    }
+    setOwner(owner);
+  };
   const ConnectToCorrectChain = async () => {
     try {
       switchChain({ chainId: chains[0].id });
-    } catch (error) {
-      console.error("Error checking chain:", error);
+    } catch (err: any) {
+      if (err.data && err.data.message) {
+        setError(err.shortMessage);
+      } else {
+        setError(err.shortMessage);
+      }
     }
   };
 
@@ -91,36 +92,58 @@ const Voting = () => {
           signer
         );
         setContract(votingContract);
+        setError(null);
         setShowMore(true);
-      } catch (error) {
-        console.error("User rejectet wallet connect", error);
+      } catch (err: any) {
+        if (err.data && err.data.message) {
+          setError(err.message);
+        } else {
+          setError(err.message);
+        }
       }
     }
   };
 
   const removePerson = async () => {
     if (contract && newRemove) {
-      const remove = await contract.removePerson(newRemove);
-      await remove.wait();
-      setNewRemove("");
+      setbtn(!isBtnDisabled);
+      setIsLoading(!isLoading);
+      try {
+        const remove = await contract.removePerson(newRemove);
+        await remove.wait();
+        setNewRemove("");
+        setShowMore(showMore);
+
+        getResults();
+        setbtn(isBtnDisabled);
+        setIsLoading(isLoading);
+      } catch (err: any) {
+        if (err.data && err.data.message) {
+          setError(err.shortMessage);
+        } else {
+          setError(err.shortMessage);
+        }
+        setIsLoading(false);
+      }
     }
   };
-  const addPerson = async () => {
+  const addCandidate = async () => {
     if (contract && newPerson) {
       setIsLoading(!isLoading);
       try {
-        const tx = await contract.addPerson(newPerson);
-        await tx.wait();
+        const add = await contract.addPerson(newPerson);
+        await add.wait();
         setNewPerson("");
 
         const updatedOptions = [...options, { name: newPerson, voteCount: 0 }];
         setOptions(updatedOptions);
+        setbtn(isBtnDisabled);
         setIsLoading(isLoading);
-      } catch (error) {
-        if ((error as any).code === 4001) {
-          setError("Transaction rejected by user.");
+      } catch (err: any) {
+        if (err.data && err.data.message) {
+          setError(err.shortMessage);
         } else {
-          setError("An error occurred during the transaction.");
+          setError(err.shortMessage);
         }
         setIsLoading(false);
       }
@@ -142,11 +165,12 @@ const Voting = () => {
         setbtn(isBtnDisabled);
         setOptions(updatedOptions);
         setIsLoading(isLoading);
-      } catch (error) {
-        if ((error as any).code === 4001) {
-          setError("Transaction rejected by user.");
+        getResults();
+      } catch (err: any) {
+        if (err.data && err.data.message) {
+          setError(err.shortMessage);
         } else {
-          setError("An error occurred during the transaction.");
+          setError(err.shortMessage);
         }
         setIsLoading(false);
         setbtn(isBtnDisabled);
@@ -156,6 +180,14 @@ const Voting = () => {
 
   return (
     <div>
+      {error && isConnected ? (
+            <div className={classes["alertMessages"]}>
+              <h2>{error}</h2>
+              <button className={classes['button-30']} onClick={() => setError(null)}>OK!</button>
+            </div>
+          ) : (
+            <div></div>
+          )}
       <div className={classes["Voting"]}>
         <div className={classes["Content"]}>
           <h1>Voting DApp</h1>
@@ -168,8 +200,8 @@ const Voting = () => {
               <button
                 className={classes["button-30"]}
                 onClick={() => {
-                  disconnect();
                   setShowMore(false);
+                  disconnect();
                 }}
               >
                 Disconnect
@@ -212,7 +244,7 @@ const Voting = () => {
               ) : (
                 <button
                   className={classes["button-30"]}
-                  onClick={addPerson}
+                  onClick={addCandidate}
                   disabled={isBtnDisabled || !isConnected}
                 >
                   Add Person
@@ -226,13 +258,22 @@ const Voting = () => {
                 value={newRemove}
                 onChange={(e) => setNewRemove(e.target.value)}
               />
-              <button className={classes["button-30"]} onClick={removePerson}>
-                Remove
-              </button>
+              {isLoading && isBtnDisabled === false ? (
+                <Spinner />
+              ) : (
+                <button
+                  className={classes["button-30"]}
+                  onClick={removePerson}
+                  disabled={isBtnDisabled || !isConnected}
+                >
+                  Remove
+                </button>
+              )}
             </div>
           ) : (
             <div></div>
           )}
+          
           {/* Candidates options and results */}
           {showMore && (
             <div className={classes["Results"]}>
@@ -259,6 +300,7 @@ const Voting = () => {
                     <button
                       className={classes["button-30"]}
                       onClick={voteForOption}
+                      disabled={!isConnected}
                     >
                       Vote
                     </button>
@@ -287,7 +329,6 @@ const Voting = () => {
           )}
         </div>
       </div>
-      {/* Message for non Copywrite */}
       <div className={classes["message"]}>
         <h1 className={classes["messageHeading"]}>Important Message !!!</h1>
         <p>
@@ -308,6 +349,7 @@ const Voting = () => {
         </p>
       </div>
     </div>
+    
   );
 };
 
