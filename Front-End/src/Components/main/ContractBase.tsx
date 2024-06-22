@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { ethers } from "ethers";
+import { ethers, id } from "ethers";
 import classes from "./ContractBase.module.scss";
 import Spinner from "../spinner/Spinner";
 import ContractABI from "../../App/ContractABI.json";
 import { useAccount, useDisconnect, useSwitchChain } from "wagmi";
-import { time } from "console";
+import { config } from "../config";
 
+// Ethereum contract address
 const VotingAddress = "0xE690C0503BEc390231387ca9FC2c36404445b9fE";
 
 interface Option {
@@ -16,144 +17,145 @@ interface Option {
 const VotingABI = ContractABI;
 
 const Voting = () => {
+  // State variables
   const [options, setOptions] = useState<Option[]>([]);
   const [newPerson, setNewPerson] = useState("");
   const [newRemove, setNewRemove] = useState("");
   const [contractOwner, setOwner] = useState("");
+  const [signerAddress, setSignerAddress] = useState("");
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
-  const [showMore, setShowMore] = useState(false);
+  const [showOptionResults, setShowOptionResults] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isBtnDisabled, setbtn] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [voteState, setVoteState] = useState(false);
+
   // Ethers
-  const [, setProvider] = useState<ethers.BrowserProvider | null>(null);
-  const [, setSigner] = useState<ethers.Signer | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
 
   // Wagmi
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected, chainId } = useAccount({ config });
   const { disconnect } = useDisconnect();
   const { chains, switchChain } = useSwitchChain();
 
   useEffect(() => {
-
-    if (isConnected) {
-      setShowMore(true);
-    }
-    if (!contract) ConnectToWallet();
-    if (!!contract) {
+    if (isConnected && contract) {
+      setShowOptionResults(true);
       getResults();
     }
+    if (isConnected && !contract) ConnectToWallet();
 
-  }, [contract, isConnected]);
-
-  const getResults = async () => {
-    const owner = await (contract as any).owner();
-    const Results: any = await (contract as any).GetVoteResults();
-
-    const candidate = Results[0];
-    const voteCount = Results[1];
-
-    const candidateResults = [];
-    for (let i = 0; i < candidate.length; i++) {
-      candidateResults.push({
-        name: candidate[i],
-        voteCount: voteCount[i].toString(),
-      });
-      setOptions(candidateResults);
+    if (contract) {
+      getResults();
     }
-    setOwner(owner);
-  };
-  const ConnectToCorrectChain = async () => {
+  }, [isConnected, contract]);
+
+  // fetch results from the smart contract
+  const getResults = async () => {
     try {
-      switchChain({ chainId: chains[0].id });
+      const owner = await (contract as any).owner();
+      const Results = await (contract as any).GetVoteResults();
+      const candidate = Results[0];
+      const voteCount = Results[1];
+
+      const candidateResults = candidate.map((name: string, index: number) => ({
+        name,
+        voteCount: voteCount[index].toString(),
+      }));
+      setOptions(candidateResults);
+      setOwner(owner);
     } catch (err: any) {
       if (err.data && err.data.message) {
-        setError(err.shortMessage);
-      } else {
-        setError(err.shortMessage);
+        setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
       }
     }
   };
 
+  // switch to the correct chain
+  const ConnectToCorrectChain = () => {
+    try {
+      switchChain({ chainId: chains[0].id });
+    } catch (err: any) {
+      if (err.data && err.data.message) {
+        setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
+      }
+    }
+  };
+
+  // connect to wallet
   const ConnectToWallet = async () => {
     if (window.ethereum) {
       try {
         const web3Provider = new ethers.BrowserProvider(window.ethereum);
-        setProvider(web3Provider);
-
         const signer = await web3Provider.getSigner();
-        setSigner(signer);
-
         const votingContract = new ethers.Contract(
           VotingAddress,
           VotingABI,
           signer
         );
         setContract(votingContract);
-        setError(null);
-        setShowMore(true);
+
+        const CurrentSignerAddress = await signer.getAddress();
+        setSignerAddress(CurrentSignerAddress);
+
+        setShowOptionResults(true);
       } catch (err: any) {
         if (err.data && err.data.message) {
-          setError(err.message);
-        } else {
-          setError(err.message);
+          setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
         }
       }
+    } else {
+      setError("Ethereum provider not found");
     }
   };
 
+  // remove person from the contest
   const removePerson = async () => {
     if (contract && newRemove) {
-      setbtn(!isBtnDisabled);
-      setIsLoading(!isLoading);
+      setbtn(true);
+      setIsLoading(true);
       try {
         const remove = await contract.removePerson(newRemove);
         await remove.wait();
         setNewRemove("");
-        setShowMore(showMore);
-
         getResults();
-        setbtn(isBtnDisabled);
-        setIsLoading(isLoading);
       } catch (err: any) {
         if (err.data && err.data.message) {
-          setError(err.shortMessage);
-        } else {
-          setError(err.shortMessage);
+          setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
         }
+      } finally {
         setIsLoading(false);
+        setbtn(false);
       }
     }
   };
+
+  // add a new candidate
   const addCandidate = async () => {
     if (contract && newPerson) {
-      setIsLoading(!isLoading);
+      setIsLoading(true);
       try {
         const add = await contract.addPerson(newPerson);
         await add.wait();
         setNewPerson("");
-
         const updatedOptions = [...options, { name: newPerson, voteCount: 0 }];
         setOptions(updatedOptions);
-        setbtn(isBtnDisabled);
-        setIsLoading(isLoading);
       } catch (err: any) {
         if (err.data && err.data.message) {
-          setError(err.shortMessage);
-        } else {
-          setError(err.shortMessage);
+          setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
         }
+      } finally {
         setIsLoading(false);
       }
     }
   };
 
+  // vote for a selected option
   const voteForOption = async () => {
-    setbtn(!isBtnDisabled);
-    setIsLoading(!isLoading);
-    if (contract && selectedOption !== null) {
+    setbtn(true);
+    setIsLoading(true);
+    if (contract && selectedOption !== null && address === signerAddress) {
       try {
         const tx = await contract.voteForOption(selectedOption);
         await tx.wait();
@@ -162,18 +164,31 @@ const Voting = () => {
             ? { ...option, voteCount: option.voteCount + 1 }
             : option
         );
-        setbtn(isBtnDisabled);
         setOptions(updatedOptions);
-        setIsLoading(isLoading);
+        setVoteState(true);
+        setError("You have voted successfully!");
         getResults();
       } catch (err: any) {
         if (err.data && err.data.message) {
-          setError(err.shortMessage);
-        } else {
-          setError(err.shortMessage);
+          setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
         }
+      } finally {
         setIsLoading(false);
-        setbtn(isBtnDisabled);
+        setbtn(false);
+      }
+    } else {
+      try {
+        await ConnectToWallet();
+        if (address === signerAddress) {
+          voteForOption();
+        }
+      } catch (err: any) {
+        if (err.data && err.data.message) {
+          setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
+        }
+      } finally {
+        setIsLoading(false);
+        setbtn(false);
       }
     }
   };
@@ -181,14 +196,29 @@ const Voting = () => {
   return (
     <div>
       {error && isConnected ? (
-            <div className={classes["alertMessages"]}>
-              <h2>{error}</h2>
-              <button className={classes['button-30']} onClick={() => setError(null)}>OK!</button>
-            </div>
-          ) : (
-            <div></div>
-          )}
-          <div className={classes["message"]}>
+        <div
+          className={classes["alertMessages"]}
+          style={{
+            backgroundColor: voteState
+              ? "rgba(80, 222, 165, 0.88)"
+              : "rgba(199, 90, 90, 0.8196078431)",
+          }}
+        >
+          <h2>{error}</h2>
+          <button
+            className={classes["button-30"]}
+            onClick={() => {
+              setVoteState(false);
+              setError(null);
+            }}
+          >
+            OK!
+          </button>
+        </div>
+      ) : (
+        <div></div>
+      )}
+      <div className={classes["message"]}>
         <h1 className={classes["messageHeading"]}>Important Message !!!</h1>
         <p>
           This Voting Dapp is a decentralized application designed to facilitate
@@ -219,7 +249,7 @@ const Voting = () => {
               <button
                 className={classes["button-30"]}
                 onClick={() => {
-                  setShowMore(false);
+                  setShowOptionResults(false);
                   disconnect();
                 }}
               >
@@ -247,7 +277,7 @@ const Voting = () => {
               Connect to Wallet
             </button>
           )}
-          {/* Only Owenr: Add and Remove Candidates */}
+          {/* Only Owner: Add and Remove Candidates */}
           {address === contractOwner ? (
             <div className={classes["Owner-Container"]}>
               <h2>Add Person</h2>
@@ -292,10 +322,11 @@ const Voting = () => {
           ) : (
             <div></div>
           )}
-          
+
           {/* Candidates options and results */}
-          {showMore && (
+          {showOptionResults && chainId === chains[0].id ? (
             <div className={classes["Results"]}>
+              {/* Options */}
               <div className={classes["candidates-container"]}>
                 <div className={classes["vote-for-results"]}>
                   <h2>Vote for a Person</h2>
@@ -319,13 +350,14 @@ const Voting = () => {
                     <button
                       className={classes["button-30"]}
                       onClick={voteForOption}
-                      disabled={!isConnected}
+                      disabled={!isConnected || !selectedOption}
                     >
                       Vote
                     </button>
                   )}
                 </div>
               </div>
+              {/* Results */}
               <div className={classes["candidates-container"]}>
                 <div className={classes["vote-for-results"]}>
                   <h2>Vote Results</h2>
@@ -345,11 +377,12 @@ const Voting = () => {
                 </div>
               </div>
             </div>
+          ) : (
+            <div></div>
           )}
         </div>
       </div>
     </div>
-    
   );
 };
 

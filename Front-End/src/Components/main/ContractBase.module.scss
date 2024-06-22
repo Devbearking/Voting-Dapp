@@ -8,7 +8,7 @@ $box-shadow: rgba(45, 35, 66, 0.4) 0 2px 4px,
   rgba(45, 35, 66, 0.3) 0 7px 13px -3px, #d6d6e7 0 -3px 0 inset;
 $box-shadow-2: rgba(45, 35, 66, 0.4) 0 2px 4px,
   rgba(45, 35, 66, 0.3) 0 7px 13px -3px;
-  $box-shadow-3: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+$box-shadow-3: rgba(0, 0, 0, 0.35) 0px 5px 15px;
 
 .Voting {
   background-color: $Background;
@@ -158,7 +158,7 @@ hr {
   box-shadow: rgba(45, 35, 66, 0.4) 0 2px 4px,
     rgba(45, 35, 66, 0.3) 0 7px 13px -3px, #d6d6e7 0 -3px 0 inset;
   background-color: #b3b3b3;
-  cursor: progress;
+  cursor: not-allowed;
 }
 
 .messageBtn {
@@ -324,10 +324,10 @@ hr {
   overflow: hidden;
   padding: 20px;
   box-shadow: $box-shadow-3;
-  p{
+  p {
     color: white;
   }
-  h3{
+  h3 {
     color: white;
   }
 }
@@ -377,6 +377,7 @@ candidates-container {
   display: grid;
   align-items: center;
   justify-content: center;
+  text-align: center;
   padding: 1rem;
   z-index: 999;
   border-radius: 20px;
@@ -385,64 +386,64 @@ candidates-container {
   top: 30%;
   margin: auto;
   width: 700px;
-  -webkit-animation: alertMessages 0.8s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
-	        animation: alertMessages 0.8s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
+  -webkit-animation: alertMessages 0.8s cubic-bezier(0.455, 0.03, 0.515, 0.955)
+    both;
+  animation: alertMessages 0.8s cubic-bezier(0.455, 0.03, 0.515, 0.955) both;
 }
 
- @-webkit-keyframes alertMessages {
+@-webkit-keyframes alertMessages {
   0%,
   100% {
     -webkit-transform: translateX(0);
-            transform: translateX(0);
+    transform: translateX(0);
   }
   10%,
   30%,
   50%,
   70% {
     -webkit-transform: translateX(-10px);
-            transform: translateX(-10px);
+    transform: translateX(-10px);
   }
   20%,
   40%,
   60% {
     -webkit-transform: translateX(10px);
-            transform: translateX(10px);
+    transform: translateX(10px);
   }
   80% {
     -webkit-transform: translateX(8px);
-            transform: translateX(8px);
+    transform: translateX(8px);
   }
   90% {
     -webkit-transform: translateX(-8px);
-            transform: translateX(-8px);
+    transform: translateX(-8px);
   }
 }
 @keyframes alertMessages {
   0%,
   100% {
     -webkit-transform: translateX(0);
-            transform: translateX(0);
+    transform: translateX(0);
   }
   10%,
   30%,
   50%,
   70% {
     -webkit-transform: translateX(-10px);
-            transform: translateX(-10px);
+    transform: translateX(-10px);
   }
   20%,
   40%,
   60% {
     -webkit-transform: translateX(10px);
-            transform: translateX(10px);
+    transform: translateX(10px);
   }
   80% {
     -webkit-transform: translateX(8px);
-            transform: translateX(8px);
+    transform: translateX(8px);
   }
   90% {
     -webkit-transform: translateX(-8px);
-            transform: translateX(-8px);
+    transform: translateX(-8px);
   }
 }
-
