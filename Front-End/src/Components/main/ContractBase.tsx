@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ethers, id } from "ethers";
+import { ethers } from "ethers";
 import classes from "./ContractBase.module.scss";
 import Spinner from "../spinner/Spinner";
 import ContractABI from "../../App/ContractABI.json";
@@ -66,7 +66,7 @@ const Voting = () => {
       setOptions(candidateResults);
       setOwner(owner);
     } catch (err: any) {
-      if (err.data && err.data.message) {
+      if (err.data) {
         setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
       }
     }
@@ -77,7 +77,7 @@ const Voting = () => {
     try {
       switchChain({ chainId: chains[0].id });
     } catch (err: any) {
-      if (err.data && err.data.message) {
+      if (err.data) {
         setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
       }
     }
@@ -101,7 +101,7 @@ const Voting = () => {
 
         setShowOptionResults(true);
       } catch (err: any) {
-        if (err.data && err.data.message) {
+        if (err.data) {
           setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
         }
       }
@@ -121,7 +121,7 @@ const Voting = () => {
         setNewRemove("");
         getResults();
       } catch (err: any) {
-        if (err.data && err.data.message) {
+        if (err.data) {
           setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
         }
       } finally {
@@ -142,7 +142,7 @@ const Voting = () => {
         const updatedOptions = [...options, { name: newPerson, voteCount: 0 }];
         setOptions(updatedOptions);
       } catch (err: any) {
-        if (err.data && err.data.message) {
+        if (err.data) {
           setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
         }
       } finally {
@@ -169,7 +169,7 @@ const Voting = () => {
         setError("You have voted successfully!");
         getResults();
       } catch (err: any) {
-        if (err.data && err.data.message) {
+        if (err.data) {
           setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
         }
       } finally {
@@ -183,7 +183,7 @@ const Voting = () => {
           voteForOption();
         }
       } catch (err: any) {
-        if (err.data && err.data.message) {
+        if (err.data) {
           setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
         }
       } finally {
