@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ethers } from "ethers";
 import classes from "./ContractBase.module.scss";
 import Spinner from "../spinner/Spinner";
@@ -49,10 +49,11 @@ const Voting = () => {
     if (contract) {
       getResults();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConnected, contract]);
 
   // fetch results from the smart contract
-  const getResults = async () => {
+  const getResults = useCallback(async () => {
     try {
       const owner = await (contract as any).owner();
       const Results = await (contract as any).GetVoteResults();
@@ -70,10 +71,10 @@ const Voting = () => {
         setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
       }
     }
-  };
+  }, [contract ,setError]);
 
   // switch to the correct chain
-  const ConnectToCorrectChain = () => {
+  const ConnectToCorrectChain = useCallback(() => {
     try {
       switchChain({ chainId: chains[0].id });
     } catch (err: any) {
@@ -81,10 +82,10 @@ const Voting = () => {
         setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
       }
     }
-  };
+  }, [chains, switchChain]);
 
   // connect to wallet
-  const ConnectToWallet = async () => {
+  const ConnectToWallet = useCallback(async () => {
     if (window.ethereum) {
       try {
         const web3Provider = new ethers.BrowserProvider(window.ethereum);
@@ -108,10 +109,10 @@ const Voting = () => {
     } else {
       setError("Ethereum provider not found");
     }
-  };
+  }, [setError]);
 
   // remove person from the contest
-  const removePerson = async () => {
+  const removePerson = useCallback(async () => {
     if (contract && newRemove) {
       setbtn(true);
       setIsLoading(true);
@@ -129,11 +130,11 @@ const Voting = () => {
         setbtn(false);
       }
     }
-  };
+  }, [contract, getResults, newRemove]);
 
   // add a new candidate
-  const addCandidate = async () => {
-    if (contract && newPerson) {
+  const addCandidate = useCallback(async () => {
+    if (contract && newPerson && address === signerAddress) {
       setIsLoading(true);
       try {
         const add = await contract.addPerson(newPerson);
@@ -148,11 +149,25 @@ const Voting = () => {
       } finally {
         setIsLoading(false);
       }
+    } else {
+      try {
+        await ConnectToWallet();
+        if (address === signerAddress) {
+          addCandidate();
+        }
+      } catch (err: any) {
+        if (err.data) {
+          setError(`Error: ${err.shortMessage} Code: ${err.info.error.code}`);
+        }
+      } finally {
+        setIsLoading(false);
+        setbtn(false);
+      }
     }
-  };
+  }, [ConnectToWallet, address, contract, newPerson, options, signerAddress]);
 
   // vote for a selected option
-  const voteForOption = async () => {
+  const voteForOption = useCallback(async () => {
     setbtn(true);
     setIsLoading(true);
     if (contract && selectedOption !== null && address === signerAddress) {
@@ -191,7 +206,7 @@ const Voting = () => {
         setbtn(false);
       }
     }
-  };
+  }, [ConnectToWallet, address, contract, getResults, options, selectedOption, signerAddress]);
 
   return (
     <div>
